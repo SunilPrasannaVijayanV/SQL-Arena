@@ -1953,5 +1953,16 @@ window.closeSaveTaskModal = closeSaveTaskModal;
 window.handleSaveTaskModalOverlayClick = handleSaveTaskModalOverlayClick;
 window.confirmSaveQueryAsTask = confirmSaveQueryAsTask;
 
+// Core playground exports for module environments
+window.switchProject = switchProject;
+window.switchTab = switchTab;
+window.executeCurrentQuery = executeCurrentQuery;
+window.setDialect = setDialect;
+window.switchResultTab = switchResultTab;
+window.browsePrevPage = browsePrevPage;
+window.browseNextPage = browseNextPage;
+window.loadPreloadedQuery = loadPreloadedQuery;
+window.showGuideStep = showGuideStep;
+
 // Start initialization on page load
 window.addEventListener('DOMContentLoaded', init);
