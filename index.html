@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive SQL Projects Dashboard & Playground</title>
+    <meta name="description" content="Explore and run SQL queries for Employee Trends, Automotive Trends, and Call Center projects using an in-browser SQLite playground.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- sql.js for in-browser SQLite -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="light-theme">
+    <!-- Auth Gate Overlay -->
+    <div class="login-wrapper" id="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <span class="login-logo-icon"><i data-lucide="database"></i></span>
+                <h2>SQL Arena</h2>
+                <p>BI Dashboard Portal</p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+                <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- Sign In Form -->
+            <form id="signin-form" class="auth-form" onsubmit="handleLogin(event)">
+                <div class="login-error hidden" id="login-error">
+                    <i data-lucide="alert-circle"></i>
+                    <span id="login-error-msg">Invalid credentials.</span>
+                </div>
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="you@example.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary login-btn-submit">
+                    Sign In <i data-lucide="log-in"></i>
+                </button>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="auth-form hidden" onsubmit="handleSignup(event)">
+                <div class="login-error hidden" id="signup-error">
+                    <i data-lucide="alert-circle"></i>
+                    <span id="signup-error-msg">Please fill all fields.</span>
+                </div>
+                <div class="login-success hidden" id="signup-success">
+                    <i data-lucide="check-circle"></i>
+                    <span>Account created! You can now sign in.</span>
+                </div>
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <input type="text" id="signup-name" required placeholder="Your Name" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Email Address</label>
+                    <input type="email" id="signup-email" required placeholder="you@example.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" required placeholder="Min 6 characters" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary login-btn-submit">
+                    Create Account <i data-lucide="user-plus"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container hidden" id="app">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <span class="logo-icon"><i data-lucide="database"></i></span>
+                    <div class="logo-text">
+                        <h2>SQL Arena</h2>
+                        <span class="subtext">Interactive Hub</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Select Project</span>
+                    <button class="nav-btn active" id="btn-project-hr" onclick="switchProject('hr')">
+                        <i data-lucide="users"></i>
+                        <span>HR Employee Trends</span>
+                    </button>
+                    <button class="nav-btn" id="btn-project-auto" onclick="switchProject('auto')">
+                        <i data-lucide="car"></i>
+                        <span>Automotive Trends</span>
+                    </button>
+                    <button class="nav-btn" id="btn-project-call" onclick="switchProject('call')">
+                        <i data-lucide="phone-call"></i>
+                        <span>Call Center Analytics</span>
+                    </button>
+                </div>
+
+                <!-- My Datasets Section -->
+                <div class="nav-section" id="my-datasets-section">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <span class="nav-section-title" style="margin:0;">My Datasets</span>
+                        <button class="upload-trigger-btn" id="btn-upload-dataset" onclick="triggerDatasetUpload()" title="Upload CSV">
+                            <i data-lucide="plus-circle"></i>
+                        </button>
+                    </div>
+                    <div id="custom-datasets-list">
+                        <p class="no-datasets-hint">No datasets yet.<br>Click + to upload a CSV.</p>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Resources</span>
+                    <button class="nav-btn" id="btn-guide" onclick="switchTab('guide')">
+                        <i data-lucide="book-open"></i>
+                        <span>Local Setup Guide</span>
+                    </button>
+
+                <div class="nav-section" style="margin-top: auto;">
+                    <span class="nav-section-title">Session</span>
+                    <div class="user-profile-badge">
+                        <div class="user-avatar" id="user-avatar-initials">BA</div>
+                        <div class="user-info">
+                            <span class="user-name" id="user-name-display">BI Analyst</span>
+                            <span class="user-role" id="user-role-display">Write Access</span>
+                        </div>
+                    </div>
+                    <button class="nav-btn logout-btn" style="color: var(--red); font-weight: 500;" onclick="handleLogout()">
+                        <i data-lucide="log-out" style="color: var(--red);"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="db-status-card">
+                    <div class="db-status-header">
+                        <span class="status-dot green animate-pulse"></span>
+                        <span class="status-label">SQLite Database Loaded</span>
+                    </div>
+                    <div class="db-stats" id="sidebar-db-stats">
+                        <div class="stat-row">
+                            <span>Active Table:</span>
+                            <strong id="active-table-name">hrdata</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>Row Count:</span>
+                            <strong id="active-table-rows">Loading...</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="content-header">
+                <div class="header-info">
+                    <span class="project-tag" id="project-category">HR Analytics</span>
+                    <h1 id="project-title">Analyzing HR Employee Trends</h1>
+                    <p id="project-description">Explore human resource details to discover attrition drivers, satisfaction aggregates, and demographic summaries.</p>
+                </div>
+                <div class="tab-nav-container">
+                    <button class="tab-btn active" id="tab-btn-explorer" onclick="switchTab('explorer')">
+                        <i data-lucide="table"></i> Schema & Data Browser
+                    </button>
+                    <button class="tab-btn" id="tab-btn-playground" onclick="switchTab('playground')">
+                        <i data-lucide="terminal"></i> SQL Playground
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Body -->
+            <div class="content-body">
+                <!-- loading spinner overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                        <span id="loading-msg">Initializing SQLite environment...</span>
+                    </div>
+                </div>
+
+                <!-- TAB 1: Schema & Data Explorer -->
+                <section class="tab-panel active" id="panel-explorer">
+                    <div class="panel-grid">
+                        <!-- Schema Panel -->
+                        <div class="panel-card schema-card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="file-text"></i> Table Schema</h3>
+                                <span class="badge" id="schema-badge">hrdata</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="data-table" id="schema-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Column Name</th>
+                                                <th>Type</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="schema-tbody">
+                                            <!-- Dynamically filled -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Browser Panel -->
+                        <div class="panel-card data-browser-card">
+                            <div class="card-header flex-header">
+                                <h3 class="card-title"><i data-lucide="eye"></i> Raw Data Explorer (First 100 Rows)</h3>
+                                <div class="pagination-controls">
+                                    <button class="icon-btn" onclick="browsePrevPage()" id="btn-browse-prev" disabled>
+                                        <i data-lucide="chevron-left"></i>
+                                    </button>
+                                    <span id="browse-page-indicator">Page 1 of 15</span>
+                                    <button class="icon-btn" onclick="browseNextPage()" id="btn-browse-next">
+                                        <i data-lucide="chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive browser-table-container">
+                                    <table class="data-table" id="browser-table">
+                                        <!-- Dynamically filled -->
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: SQL Playground -->
+                <section class="tab-panel" id="panel-playground">
+                    <div class="playground-layout">
+                        <!-- Left Panel: Preloaded Queries -->
+                        <div class="queries-list-card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="list"></i> Preloaded Tasks</h3>
+                            </div>
+                            <div class="queries-scroll" id="preloaded-queries-list">
+                                <!-- Loaded dynamically based on active project -->
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Editor & Results -->
+                        <div class="editor-results-container">
+                            <!-- SQL Editor Card -->
+                            <div class="panel-card editor-card">
+                                <div class="card-header flex-header">
+                                    <div class="title-with-subtitle">
+                                        <h3 class="card-title"><i data-lucide="code-2"></i> SQL Editor</h3>
+                                        <span class="subtitle-text" id="active-task-desc">Select a task on the left or write your own SQL query below.</span>
+                                    </div>
+                                    <div class="editor-actions">
+                                        <div class="toggle-container">
+                                            <span class="toggle-label">Dialect:</span>
+                                            <button class="dialect-toggle active" id="dialect-sqlite" onclick="setDialect('sqlite')">SQLite (Run)</button>
+                                            <button class="dialect-toggle" id="dialect-original" onclick="setDialect('original')">Original MySQL/MSSQL</button>
+                                        </div>
+                                        <button class="btn btn-primary" id="btn-run-query" onclick="executeCurrentQuery()">
+                                            <i data-lucide="play"></i> Run Query
+                                        </button>
+                                        <button class="btn" id="btn-save-task" onclick="openSaveTaskModal()" style="border-color: var(--accent); color: var(--accent); background: transparent; font-weight: 500;" title="Save current SQL as a preloaded task">
+                                            <i data-lucide="plus"></i> Save as Task
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body editor-body">
+                                    <div class="editor-wrapper">
+                                        <div class="line-numbers" id="editor-line-numbers">1</div>
+                                        <textarea class="sql-textarea" id="sql-editor" spellcheck="false" placeholder="SELECT * FROM hrdata LIMIT 10;"></textarea>
+                                    </div>
+                                    <div class="dialect-warning-banner hidden" id="dialect-warning">
+                                        <i data-lucide="info"></i>
+                                        <span>Showing Original SQL (Dialect: MySQL/SQL Server). Switch to SQLite to edit and run it.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SQL Results Card -->
+                            <div class="panel-card results-card">
+                                <div class="card-header flex-header">
+                                    <div class="tabs-header-sub">
+                                        <button class="result-tab-btn active" id="res-tab-table" onclick="switchResultTab('table')">
+                                            <i data-lucide="sheet"></i> Results Table
+                                        </button>
+                                        <button class="result-tab-btn" id="res-tab-chart" onclick="switchResultTab('chart')">
+                                            <i data-lucide="bar-chart-3"></i> Visualization
+                                        </button>
+                                    </div>
+                                    <div class="result-meta-info" id="result-status">
+                                        No queries executed yet.
+                                    </div>
+                                </div>
+                                <div class="card-body results-body">
+                                    <!-- Results Table -->
+                                    <div class="result-view-panel active" id="result-view-table">
+                                        <div class="table-responsive results-table-container" id="results-table-container">
+                                            <div class="empty-state">
+                                                <i data-lucide="play-circle"></i>
+                                                <p>Write or select a query and click "Run Query" to see output tables.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chart View -->
+                                    <div class="result-view-panel" id="result-view-chart">
+                                        <div class="chart-container-wrapper">
+                                            <div class="chart-config-bar hidden" id="chart-controls">
+                                                <div class="input-group">
+                                                    <label for="chart-type-select">Chart Type:</label>
+                                                    <select id="chart-type-select" onchange="updateChart()">
+                                                        <option value="bar">Bar Chart</option>
+                                                        <option value="line">Line Chart</option>
+                                                        <option value="pie">Pie Chart</option>
+                                                        <option value="doughnut">Doughnut Chart</option>
+                                                    </select>
+                                                </div>
+                                                <div class="input-group">
+                                                    <label for="chart-x-select">X-Axis (Label):</label>
+                                                    <select id="chart-x-select" onchange="updateChart()"></select>
+                                                </div>
+                                                <div class="input-group">
+                                                    <label for="chart-y-select">Y-Axis (Value):</label>
+                                                    <select id="chart-y-select" onchange="updateChart()"></select>
+                                                </div>
+                                                <div class="input-group">
+                                                    <label for="chart-split-select">Legend (Split By):</label>
+                                                    <select id="chart-split-select" onchange="updateChart()"></select>
+                                                </div>
+                                            </div>
+                                            <div class="chart-canvas-container">
+                                                <canvas id="playground-chart"></canvas>
+                                                <div class="empty-state" id="chart-empty-state">
+                                                    <i data-lucide="bar-chart-2"></i>
+                                                    <p>Run a query returning numerical records to plot visualizations.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: Local Setup Guide -->
+                <section class="tab-panel" id="panel-guide">
+                    <div class="guide-container">
+                        <div class="guide-sidebar">
+                            <h4 class="guide-title">Local Setup Steps</h4>
+                            <ul class="guide-steps-list">
+                                <li class="active" onclick="showGuideStep(1)" id="guide-step-btn-1">
+                                    <span class="step-num">1</span>
+                                    <span>Database Installation</span>
+                                </li>
+                                <li onclick="showGuideStep(2)" id="guide-step-btn-2">
+                                    <span class="step-num">2</span>
+                                    <span>Importing Datasets (CSVs)</span>
+                                </li>
+                                <li onclick="showGuideStep(3)" id="guide-step-btn-3">
+                                    <span class="step-num">3</span>
+                                    <span>Running SQL Queries</span>
+                                </li>
+                                <li onclick="showGuideStep(4)" id="guide-step-btn-4">
+                                    <span class="step-num">4</span>
+                                    <span>MySQL vs SQL Server Syntax</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="guide-content-panel">
+                            <!-- Step 1 -->
+                            <div class="guide-step-content active" id="guide-content-1">
+                                <h2>1. Database Server Installation</h2>
+                                <p>To run these queries locally on your machine, you need a Relational Database Management System (RDBMS). You have two major choices:</p>
+                                
+                                <div class="db-options-grid">
+                                    <div class="option-card">
+                                        <h4>Option A: MySQL (Author's recommendation)</h4>
+                                        <p>Best for lightweight, open-source setups. Excellent for learning command line and workbench tools.</p>
+                                        <ol>
+                                            <li>Download and install <strong>MySQL Community Server</strong> and <strong>MySQL Workbench</strong>.</li>
+                                            <li>Complete installation, setting a password for the <code>root</code> user.</li>
+                                            <li>Open MySQL Workbench and establish a local connection.</li>
+                                        </ol>
+                                    </div>
+                                    <div class="option-card">
+                                        <h4>Option B: Microsoft SQL Server</h4>
+                                        <p>Standard enterprise database system. The repository was built using MS SQL Server Management Studio (SSMS).</p>
+                                        <ol>
+                                            <li>Download and install <strong>SQL Server Express Edition</strong> (free version).</li>
+                                            <li>Download and install <strong>SQL Server Management Studio (SSMS)</strong>.</li>
+                                            <li>Launch SSMS and connect using Windows Authentication mode.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="guide-step-content" id="guide-content-2">
+                                <h2>2. Creating Database & Importing CSV Files</h2>
+                                <p>After installing your database, you must create a schema and import the datasets.</p>
+                                
+                                <h3>Method for MySQL Workbench:</h3>
+                                <ol>
+                                    <li>Run the SQL command to create a new database schema:
+                                        <pre><code>CREATE DATABASE hr_data;
+CREATE DATABASE cars_info;
+CREATE DATABASE call_centerdata;</code></pre>
+                                    </li>
+                                    <li>Right-click on the database schema in the sidebar, select <strong>Table Data Import Wizard</strong>.</li>
+                                    <li>Choose the corresponding CSV file (e.g. <code>Analyzing Employee Trends.csv</code>) and name the destination table (e.g. <code>hrdata</code>).</li>
+                                    <li>Define data types: ensure columns like <code>age</code>, <code>job_satisfaction</code>, <code>selling_price</code> are read as <strong>INT/DOUBLE</strong>.</li>
+                                    <li>Click import to populate the database tables!</li>
+                                </ol>
+
+                                <h3>Method for SQL Server (SSMS):</h3>
+                                <ol>
+                                    <li>Right-click on <strong>Databases</strong> -> <strong>New Database</strong>, name it (e.g. <code>hr_data</code>).</li>
+                                    <li>Right-click the newly created database -> <strong>Tasks</strong> -> <strong>Import Flat File...</strong></li>
+                                    <li>Browse for the CSV file and define column schemas. Pay close attention to stripping text prefixes if importing numerical metrics (e.g. <code>mileage</code>, <code>engine</code>) or change their types to Varchar and handle them later.</li>
+                                    <li>Follow the prompts to finalize the import.</li>
+                                </ol>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="guide-step-content" id="guide-content-3">
+                                <h2>3. Executing SQL Files</h2>
+                                <p>Once the tables are imported successfully, you can copy-paste the SQL script queries from our workspace into your SQL runner to analyze the database tables.</p>
+                                
+                                <h3>Steps to run queries:</h3>
+                                <ol>
+                                    <li>Open a new query window in MySQL Workbench or SSMS.</li>
+                                    <li>Ensure you target the correct schema using:
+                                        <pre><code>USE hr_data; -- For Employee Trends
+USE cars_info; -- For Automotive Trends
+USE call_centerdata; -- For Call Center Data</code></pre>
+                                    </li>
+                                    <li>Copy individual queries from the <code>.sql</code> files in your workspace, paste them into the query editor, select a query, and click <strong>Execute (⚡)</strong> to run it.</li>
+                                </ol>
+                            </div>
+
+                            <!-- Step 4 -->
+                            <div class="guide-step-content" id="guide-content-4">
+                                <h2>4. MySQL vs SQL Server Dialect Differences</h2>
+                                <p>SQL standards exist, but MySQL, SQL Server, and SQLite use slightly different dialects. If you run into issues, check these syntax variations:</p>
+
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Feature</th>
+                                                <th>MySQL Syntax</th>
+                                                <th>SQL Server (MSSQL) Syntax</th>
+                                                <th>SQLite (Our Playground)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Row Limit</strong></td>
+                                                <td><code>LIMIT 10</code></td>
+                                                <td><code>SELECT TOP 10 ...</code></td>
+                                                <td><code>LIMIT 10</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>String to Date</strong></td>
+                                                <td><code>str_to_date(col, '%m/%d/%Y')</code></td>
+                                                <td><code>CONVERT(DATE, col, 101)</code></td>
+                                                <td>Pre-cleaned to <code>YYYY-MM-DD</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Day Name</strong></td>
+                                                <td><code>DAYNAME(col)</code></td>
+                                                <td><code>DATENAME(dw, col)</code></td>
+                                                <td><code>CASE strftime('%w', col) ...</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Safe Updates</strong></td>
+                                                <td><code>SET SQL_SAFE_UPDATES = 0;</code></td>
+                                                <td>Not required</td>
+                                                <td>Not required</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+    <!-- Dataset Upload Modal -->
+    <div id="upload-modal" class="modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title"><i data-lucide="upload-cloud"></i> Upload Custom Dataset</h3>
+                <button class="modal-close-btn" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Drop Zone -->
+                <div id="upload-dropzone" class="upload-dropzone" onclick="triggerFileSelect()">
+                    <i data-lucide="file-spreadsheet" class="dropzone-icon"></i>
+                    <p class="dropzone-text">Drag & drop your CSV or Excel file here, or <span class="browse-link">browse files</span></p>
+                    <span class="dropzone-subtext">Supports valid .csv, .xlsx, .xls files up to 10MB</span>
+                    <div style="margin-top: 12px; font-size: 0.75rem; color: var(--text-secondary);">
+                        Or, <span class="sample-load-link" id="sample-load-link" style="color: var(--accent); text-decoration: underline; font-weight: 600;" onclick="loadSampleDataset(event)">load a sample sales dataset</span>
+                    </div>
+                    <input type="file" id="file-input" accept=".csv, .xlsx, .xls" class="hidden-file-input" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Preview & Inferred Details -->
+                <div id="upload-details" class="upload-details hidden">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="dataset-name">Dataset Name (SQL Table Name)</label>
+                        <input type="text" id="dataset-name" placeholder="e.g. sales_data" style="width: 100%; padding: 8px 12px; background-color: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); outline: none;" oninput="validateTableName(this)">
+                        <span class="input-hint" style="display: block; margin-top: 4px; font-size: 0.7rem; color: var(--text-muted);">Lowercase letters, numbers, and underscores only. No spaces.</span>
+                    </div>
+
+                    <div class="dataset-preview-section">
+                        <span class="section-title">Inferred Schema Details</span>
+                        <div class="schema-preview-container">
+                            <div class="schema-meta">
+                                <span>Rows: <strong id="preview-row-count">0</strong></span>
+                                <span>Columns: <strong id="preview-col-count">0</strong></span>
+                            </div>
+                            <table class="data-table preview-table" id="preview-schema-table" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Detected SQL Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-schema-tbody">
+                                    <!-- Loaded live via PapaParse -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-confirm-upload" onclick="confirmDatasetUpload()" style="width: 100%; justify-content: center; padding: 10px;">
+                        <i data-lucide="plus-circle"></i> Create Table & Load Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Save Query Task Modal -->
+    <div id="save-task-modal" class="modal-overlay hidden" onclick="handleSaveTaskModalOverlayClick(event)">
+        <div class="modal-card" style="width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i data-lucide="bookmark-plus"></i> Save SQL as Task</h3>
+                <button class="modal-close-btn" onclick="closeSaveTaskModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="gap: 12px;">
+                <div class="form-group">
+                    <label for="task-title">Task Title</label>
+                    <input type="text" id="task-title" placeholder="e.g. Sales by Department" style="width: 100%; padding: 8px 12px; background-color: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); outline: none;">
+                </div>
+                <div class="form-group">
+                    <label for="task-desc">Description</label>
+                    <textarea id="task-desc" placeholder="e.g. Calculates department revenue breakdowns for the year." style="width: 100%; height: 70px; padding: 8px 12px; background-color: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); outline: none; resize: none; font-family: var(--font-sans); font-size: 0.8rem;"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="confirmSaveQueryAsTask()" style="width: 100%; justify-content: center; padding: 10px; margin-top: 8px;">
+                    <i data-lucide="check-circle"></i> Save Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="./app.js"></script>
+</body>
+</html>
