@@ -331,30 +331,95 @@
                                     <div class="result-view-panel" id="result-view-chart">
                                         <div class="chart-container-wrapper">
                                             <div class="chart-config-bar hidden" id="chart-controls">
+                                                <!-- Visual type -->
                                                 <div class="input-group">
-                                                    <label for="chart-type-select">Chart Type:</label>
-                                                    <select id="chart-type-select" onchange="updateChart()">
-                                                        <option value="bar">Bar Chart</option>
+                                                    <label for="chart-type-select">Visual Type:</label>
+                                                    <select id="chart-type-select" onchange="toggleVisualMode(); updateChart()">
+                                                        <option value="bar">Column Chart</option>
+                                                        <option value="horizontal-bar">Bar Chart (Horizontal)</option>
+                                                        <option value="stacked-bar">Stacked Column Chart</option>
                                                         <option value="line">Line Chart</option>
+                                                        <option value="area">Area Chart</option>
+                                                        <option value="stacked-area">Stacked Area Chart</option>
                                                         <option value="pie">Pie Chart</option>
                                                         <option value="doughnut">Doughnut Chart</option>
+                                                        <option value="polarArea">Polar Area Chart</option>
+                                                        <option value="kpi-card">KPI Card Visual</option>
                                                     </select>
                                                 </div>
-                                                <div class="input-group">
-                                                    <label for="chart-x-select">X-Axis (Label):</label>
+                                                
+                                                <!-- X-Axis -->
+                                                <div class="input-group" id="group-x-select">
+                                                    <label for="chart-x-select">X-Axis:</label>
                                                     <select id="chart-x-select" onchange="updateChart()"></select>
                                                 </div>
+                                                
+                                                <!-- Y-Axis -->
                                                 <div class="input-group">
-                                                    <label for="chart-y-select">Y-Axis (Value):</label>
+                                                    <label for="chart-y-select">Y-Axis:</label>
                                                     <select id="chart-y-select" onchange="updateChart()"></select>
                                                 </div>
-                                                <div class="input-group">
-                                                    <label for="chart-split-select">Legend (Split By):</label>
+                                                
+                                                <!-- Legend Split -->
+                                                <div class="input-group" id="group-split-select">
+                                                    <label for="chart-split-select">Legend:</label>
                                                     <select id="chart-split-select" onchange="updateChart()"></select>
                                                 </div>
+
+                                                <!-- Theme Selection -->
+                                                <div class="input-group" id="group-theme-select">
+                                                    <label for="chart-theme-select">Theme:</label>
+                                                    <select id="chart-theme-select" onchange="updateChart()">
+                                                        <option value="powerbi">PowerBI Teal</option>
+                                                        <option value="royal">Royal Gold</option>
+                                                        <option value="sunset">Vibrant Sunset</option>
+                                                        <option value="tech">Cyber Cyan</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Toggle Gridlines -->
+                                                <div class="input-group" id="group-gridlines-toggle">
+                                                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+                                                        <input type="checkbox" id="chart-gridlines-check" checked onchange="updateChart()">
+                                                        <span>Gridlines</span>
+                                                    </label>
+                                                </div>
+
+                                                <!-- Exports -->
+                                                <div class="input-group" style="margin-left: auto; display: flex; gap: 4px;">
+                                                    <button class="btn btn-secondary" onclick="exportChartImage()" title="Export Visual to PNG" style="padding: 4px 8px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">
+                                                        <i data-lucide="image" style="width: 14px; height: 14px;"></i>
+                                                        <span>Export Image</span>
+                                                    </button>
+                                                    <button class="btn btn-secondary" onclick="exportDataCSV()" title="Export Summarized Data to CSV" style="padding: 4px 8px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">
+                                                        <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                                        <span>Export CSV</span>
+                                                    </button>
+                                                </div>
                                             </div>
+                                            
                                             <div class="chart-canvas-container">
                                                 <canvas id="playground-chart"></canvas>
+                                                
+                                                <!-- KPI Card Visual Overlay Container -->
+                                                <div id="kpi-card-visual" class="kpi-card-visual hidden">
+                                                    <div class="kpi-card-aggregate">
+                                                        <label for="kpi-agg-select">Aggregated By:</label>
+                                                        <select id="kpi-agg-select" onchange="updateChart()">
+                                                            <option value="sum">Sum</option>
+                                                            <option value="avg">Average</option>
+                                                            <option value="min">Minimum</option>
+                                                            <option value="max">Maximum</option>
+                                                            <option value="first" selected>First Row</option>
+                                                            <option value="count">Count (Rows)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="kpi-card-body">
+                                                        <div class="kpi-card-value" id="kpi-card-value">0</div>
+                                                        <div class="kpi-card-title" id="kpi-card-title">Metric Column</div>
+                                                    </div>
+                                                </div>
+
                                                 <div class="empty-state" id="chart-empty-state">
                                                     <i data-lucide="bar-chart-2"></i>
                                                     <p>Run a query returning numerical records to plot visualizations.</p>

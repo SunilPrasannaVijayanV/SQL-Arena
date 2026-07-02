@@ -1,3 +1,5 @@
+
+
 // State variables
 let db = null;
 let activeProject = 'hr'; // 'hr', 'auto', 'call' or custom dataset ID
@@ -412,7 +414,17 @@ const els = {
     chartYSelect: document.getElementById('chart-y-select'),
     chartSplitSelect: document.getElementById('chart-split-select'),
     chartCanvas: document.getElementById('playground-chart'),
-    chartEmptyState: document.getElementById('chart-empty-state')
+    chartEmptyState: document.getElementById('chart-empty-state'),
+    chartThemeSelect: document.getElementById('chart-theme-select'),
+    chartGridlinesCheck: document.getElementById('chart-gridlines-check'),
+    kpiCardVisual: document.getElementById('kpi-card-visual'),
+    kpiCardValue: document.getElementById('kpi-card-value'),
+    kpiCardTitle: document.getElementById('kpi-card-title'),
+    kpiAggSelect: document.getElementById('kpi-agg-select'),
+    groupXSelect: document.getElementById('group-x-select'),
+    groupSplitSelect: document.getElementById('group-split-select'),
+    groupGridlinesToggle: document.getElementById('group-gridlines-toggle'),
+    groupThemeSelect: document.getElementById('group-theme-select')
 };
 
 // Initialize Application
@@ -1114,8 +1126,190 @@ function setupChartAxes(cols, vals) {
     els.chartCanvas.style.display = 'block';
     els.chartEmptyState.style.display = 'none';
     
+    toggleVisualMode();
+    
     // Plot Chart
     updateChart();
+}
+
+// PowerBI color themes for visualization
+const palettes = {
+    powerbi: {
+        colors: [
+            'rgba(17, 141, 255, 0.75)',   // PowerBI Teal/Blue
+            'rgba(238, 106, 32, 0.75)',   // Orange
+            'rgba(242, 194, 0, 0.75)',    // Yellow
+            'rgba(37, 74, 98, 0.75)',     // Slate Navy
+            'rgba(122, 104, 187, 0.75)',  // Lavender
+            'rgba(224, 76, 76, 0.75)'     // Coral/Red
+        ],
+        borderColors: [
+            'rgba(17, 141, 255, 1)',
+            'rgba(238, 106, 32, 1)',
+            'rgba(242, 194, 0, 1)',
+            'rgba(37, 74, 98, 1)',
+            'rgba(122, 104, 187, 1)',
+            'rgba(224, 76, 76, 1)'
+        ]
+    },
+    royal: {
+        colors: [
+            'rgba(30, 64, 175, 0.75)',   // Royal Blue
+            'rgba(180, 83, 9, 0.75)',    // Royal Gold
+            'rgba(4, 120, 87, 0.75)',    // Emerald Green
+            'rgba(185, 28, 28, 0.75)',   // Crimson Red
+            'rgba(13, 148, 136, 0.75)',  // Teal
+            'rgba(71, 85, 105, 0.75)'    // Slate
+        ],
+        borderColors: [
+            'rgba(30, 64, 175, 1)',
+            'rgba(180, 83, 9, 1)',
+            'rgba(4, 120, 87, 1)',
+            'rgba(185, 28, 28, 1)',
+            'rgba(13, 148, 136, 1)',
+            'rgba(71, 85, 105, 1)'
+        ]
+    },
+    sunset: {
+        colors: [
+            'rgba(244, 63, 94, 0.75)',   // Rose
+            'rgba(249, 115, 22, 0.75)',  // Orange
+            'rgba(236, 72, 153, 0.75)',  // Pink
+            'rgba(234, 179, 8, 0.75)',   // Gold/Yellow
+            'rgba(168, 85, 247, 0.75)',  // Purple
+            'rgba(194, 65, 12, 0.75)'    // Rust
+        ],
+        borderColors: [
+            'rgba(244, 63, 94, 1)',
+            'rgba(249, 115, 22, 1)',
+            'rgba(236, 72, 153, 1)',
+            'rgba(234, 179, 8, 1)',
+            'rgba(168, 85, 247, 1)',
+            'rgba(194, 65, 12, 1)'
+        ]
+    },
+    tech: {
+        colors: [
+            'rgba(6, 182, 212, 0.75)',   // Cyan
+            'rgba(99, 102, 241, 0.75)',  // Indigo
+            'rgba(20, 184, 166, 0.75)',  // Teal
+            'rgba(139, 92, 246, 0.75)',  // Violet
+            'rgba(59, 130, 246, 0.75)',  // Blue
+            'rgba(244, 63, 94, 0.75)'    // Rose
+        ],
+        borderColors: [
+            'rgba(6, 182, 212, 1)',
+            'rgba(99, 102, 241, 1)',
+            'rgba(20, 184, 166, 1)',
+            'rgba(139, 92, 246, 1)',
+            'rgba(59, 130, 246, 1)',
+            'rgba(244, 63, 94, 1)'
+        ]
+    }
+};
+
+function toggleVisualMode() {
+    const chartType = els.chartTypeSelect.value;
+    const isKPI = chartType === 'kpi-card';
+    
+    if (isKPI) {
+        // Show KPI Card container, hide canvas
+        els.kpiCardVisual.classList.remove('hidden');
+        els.chartCanvas.style.display = 'none';
+        
+        // Hide irrelevant select fields
+        els.groupXSelect.classList.add('hidden');
+        els.groupSplitSelect.classList.add('hidden');
+        els.groupGridlinesToggle.classList.add('hidden');
+        els.groupThemeSelect.classList.add('hidden');
+    } else {
+        // Show canvas, hide KPI card container
+        els.kpiCardVisual.classList.add('hidden');
+        els.chartCanvas.style.display = 'block';
+        
+        // Show select fields
+        els.groupXSelect.classList.remove('hidden');
+        els.groupSplitSelect.classList.remove('hidden');
+        els.groupGridlinesToggle.classList.remove('hidden');
+        els.groupThemeSelect.classList.remove('hidden');
+    }
+}
+
+function exportChartImage() {
+    const isKPI = els.chartTypeSelect.value === 'kpi-card';
+    if (isKPI) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 600, 300);
+        
+        // Border
+        ctx.strokeStyle = '#e7e5e4';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(10, 10, 580, 280);
+        
+        // Title
+        ctx.fillStyle = '#57534e';
+        ctx.font = 'bold 20px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(document.getElementById('kpi-card-title').textContent, 300, 90);
+        
+        // Value
+        ctx.fillStyle = '#1e40af';
+        ctx.font = 'bold 54px Inter, sans-serif';
+        ctx.fillText(document.getElementById('kpi-card-value').textContent, 300, 180);
+        
+        // Footer
+        ctx.fillStyle = '#a8a29e';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText('Generated by SQL Arena Sandbox', 300, 240);
+        
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `sql_arena_kpi_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
+        return;
+    }
+    
+    if (!els.chartCanvas) return;
+    const dataURL = els.chartCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `sql_arena_chart_${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+}
+
+function exportDataCSV() {
+    if (!lastCols || !lastVals || lastVals.length === 0) {
+        alert('No data to export.');
+        return;
+    }
+    
+    let csvContent = '';
+    csvContent += lastCols.map(c => `"${c.replace(/"/g, '""')}"`).join(',') + '\n';
+    lastVals.forEach(row => {
+        csvContent += row.map(val => {
+            if (val === null) return '';
+            const valStr = String(val);
+            if (typeof val === 'number') return valStr;
+            return `"${valStr.replace(/"/g, '""')}"`;
+        }).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sql_arena_dataset_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function updateChart() {
@@ -1135,38 +1329,104 @@ function updateChart() {
     
     if (chartInstance) {
         chartInstance.destroy();
+        chartInstance = null;
     }
     
-    // Royal based color themes for visualization
-    const colors = [
-        'rgba(30, 64, 175, 0.75)',   // Royal Blue
-        'rgba(4, 120, 87, 0.75)',    // Emerald Green
-        'rgba(180, 83, 9, 0.75)',    // Royal Gold
-        'rgba(185, 28, 28, 0.75)',   // Crimson Red
-        'rgba(71, 85, 105, 0.75)',   // Slate
-        'rgba(13, 148, 136, 0.75)'   // Teal
-    ];
+    // KPI Card Visual mode
+    if (chartType === 'kpi-card') {
+        const yVals = subset.map(row => parseFloat(row[yIdx])).filter(v => !isNaN(v));
+        const aggType = document.getElementById('kpi-agg-select').value;
+        let value = 0;
+        let label = '';
+        
+        if (yVals.length === 0) {
+            value = 'No Data';
+            label = `${yCol}`;
+        } else {
+            switch (aggType) {
+                case 'sum':
+                    value = yVals.reduce((a, b) => a + b, 0);
+                    label = `SUM of ${yCol}`;
+                    break;
+                case 'avg':
+                    value = yVals.reduce((a, b) => a + b, 0) / yVals.length;
+                    label = `AVERAGE of ${yCol}`;
+                    break;
+                case 'min':
+                    value = Math.min(...yVals);
+                    label = `MIN of ${yCol}`;
+                    break;
+                case 'max':
+                    value = Math.max(...yVals);
+                    label = `MAX of ${yCol}`;
+                    break;
+                case 'first':
+                    value = yVals[0];
+                    label = `FIRST value of ${yCol}`;
+                    break;
+                case 'count':
+                    value = subset.length;
+                    label = `COUNT of Rows`;
+                    break;
+            }
+        }
+        
+        let formattedValue = value;
+        if (typeof value === 'number') {
+            if (Number.isInteger(value)) {
+                formattedValue = value.toLocaleString();
+            } else {
+                formattedValue = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+        
+        document.getElementById('kpi-card-value').textContent = formattedValue;
+        document.getElementById('kpi-card-title').textContent = label;
+        return;
+    }
     
-    const borderColors = [
-        'rgba(30, 64, 175, 1)',
-        'rgba(4, 120, 87, 1)',
-        'rgba(180, 83, 9, 1)',
-        'rgba(185, 28, 28, 1)',
-        'rgba(71, 85, 105, 1)',
-        'rgba(13, 148, 136, 1)'
-    ];
+    // Theme palette
+    const selectedTheme = els.chartThemeSelect.value || 'powerbi';
+    const activePalette = palettes[selectedTheme] || palettes.powerbi;
+    const colors = activePalette.colors;
+    const borderColors = activePalette.borderColors;
+
+    // Show/hide gridlines check
+    const showGrid = els.chartGridlinesCheck.checked;
+    
+    // Map custom chart types:
+    let computedType = chartType;
+    let indexAxis = 'x';
+    let isStacked = false;
+    let isArea = false;
+    
+    if (chartType === 'horizontal-bar') {
+        computedType = 'bar';
+        indexAxis = 'y';
+    } else if (chartType === 'stacked-bar') {
+        computedType = 'bar';
+        isStacked = true;
+    } else if (chartType === 'area') {
+        computedType = 'line';
+        isArea = true;
+    } else if (chartType === 'stacked-area') {
+        computedType = 'line';
+        isArea = true;
+        isStacked = true;
+    }
     
     const ctx = els.chartCanvas.getContext('2d');
-    const isPie = chartType === 'pie' || chartType === 'doughnut';
+    const isPie = computedType === 'pie' || computedType === 'doughnut' || computedType === 'polarArea';
     
     // Read dynamic CSS variables for theme matching
     const borderVar = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e7e5e4';
     const textSecVar = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#57534e';
     
     let chartConfig = {
-        type: chartType,
+        type: computedType,
         data: {},
         options: {
+            indexAxis: indexAxis,
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
@@ -1180,14 +1440,22 @@ function updateChart() {
             },
             scales: isPie ? {} : {
                 x: {
-                    grid: { color: borderVar },
+                    stacked: isStacked,
+                    grid: { 
+                        display: showGrid,
+                        color: borderVar 
+                    },
                     ticks: {
                         color: textSecVar,
                         font: { family: 'Inter', size: 10 }
                     }
                 },
                 y: {
-                    grid: { color: borderVar },
+                    stacked: isStacked,
+                    grid: { 
+                        display: showGrid,
+                        color: borderVar 
+                    },
                     ticks: {
                         color: textSecVar,
                         font: { family: 'Inter', size: 10 }
@@ -1197,10 +1465,8 @@ function updateChart() {
         }
     };
 
-    // Helper: get X label for a row
     const getXLabel = (row) => {
         if (xCol === '__combined__') {
-            // Find all text column indexes
             const textColIndexes = lastCols.map((c, i) => ({name: c, idx: i}))
                                            .filter(item => {
                                                const val = lastVals[0][item.idx];
@@ -1213,7 +1479,6 @@ function updateChart() {
     };
     
     if (splitIdx !== -1 && splitCol !== 'none' && splitCol !== xCol) {
-        // Multi-series grouping (Split By / Legend)
         const groups = {};
         const allXValues = new Set();
         
@@ -1227,7 +1492,6 @@ function updateChart() {
             allXValues.add(xVal);
         });
         
-        // Sort X values to keep axes neat
         const sortedX = Array.from(allXValues).sort((a, b) => {
             if (!isNaN(a) && !isNaN(b)) return parseFloat(a) - parseFloat(b);
             return a.localeCompare(b);
@@ -1241,10 +1505,12 @@ function updateChart() {
             return {
                 label: groupName,
                 data: dataPoints,
-                backgroundColor: isPie ? colors : color,
+                backgroundColor: isPie ? colors : (isArea ? color.replace('0.75', '0.2') : color),
                 borderColor: isPie ? borderColors : border,
-                borderWidth: 1.5,
-                borderRadius: chartType === 'bar' ? 4 : 0
+                borderWidth: isArea ? 2 : 1.5,
+                fill: isArea,
+                tension: 0.3,
+                borderRadius: computedType === 'bar' ? 4 : 0
             };
         });
         
@@ -1253,7 +1519,6 @@ function updateChart() {
             datasets: datasets
         };
     } else {
-        // Single-series data
         const labels = subset.map(row => getXLabel(row));
         const data = subset.map(row => parseFloat(row[yIdx]) || 0);
         
@@ -1262,10 +1527,12 @@ function updateChart() {
             datasets: [{
                 label: yCol,
                 data: data,
-                backgroundColor: isPie ? colors : colors[0],
+                backgroundColor: isPie ? colors : (isArea ? colors[0].replace('0.75', '0.2') : colors[0]),
                 borderColor: isPie ? borderColors : borderColors[0],
-                borderWidth: 1.5,
-                borderRadius: chartType === 'bar' ? 4 : 0
+                borderWidth: isArea ? 2 : 1.5,
+                fill: isArea,
+                tension: 0.3,
+                borderRadius: computedType === 'bar' ? 4 : 0
             }]
         };
     }
@@ -1963,6 +2230,9 @@ window.browsePrevPage = browsePrevPage;
 window.browseNextPage = browseNextPage;
 window.loadPreloadedQuery = loadPreloadedQuery;
 window.showGuideStep = showGuideStep;
+window.toggleVisualMode = toggleVisualMode;
+window.exportChartImage = exportChartImage;
+window.exportDataCSV = exportDataCSV;
 
 // Start initialization on page load
 window.addEventListener('DOMContentLoaded', init);
